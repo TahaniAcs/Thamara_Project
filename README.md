@@ -7,18 +7,23 @@
 
 > An intelligent computer vision system capable of classifying fruit ripeness stages using Convolutional Neural Networks (CNN).
 
-https://github.com/user-attachments/assets/d53c095d-1983-4c17-a1ba-32628c1ef31e
-
 ## 📖 About The Project
 **Thamara (ثمرة)** is a Deep Learning project designed to automate quality control in agriculture. By analyzing fruit images, the system can determine the exact ripeness stage (e.g., Unripe, Ripe, Overripe) with high accuracy. This helps in sorting processes and reducing food waste.
 
 The project includes a full pipeline: downloading the dataset automatically, training a custom CNN model, and exposing the model via a REST API.
 
+## 📱 Application Demo
+> Watch Thamara in action!
+
+https://github.com/user-attachments/assets/c7c266bd-d9be-4465-a3a3-64742b6c2875
+
+---
+
 ## ✨ Key Features
 
 * **🧠 Custom CNN Architecture:** A lightweight and efficient Convolutional Neural Network trained on 50 Epochs.
 * **📂 Automated Data Pipeline:** Uses `kagglehub` to fetch the dataset automatically without manual download.
-* **🔌 REST API:** Includes `ripeness_api.py` built with **FastAPI** to integrate the model with web or mobile apps.
+* **🔌 REST API:** Includes `ripeness_api.py` built with **FastAPI** to integrate the model with mobile apps.
 * **💾 Pre-trained Model:** Comes with `thamara_ripeness_best.keras` ready for immediate deployment.
 * **🔍 Instant Prediction:** The `predict_ripeness.py` script allows for testing on single images instantly.
 
@@ -31,6 +36,13 @@ The project includes a full pipeline: downloading the dataset automatically, tra
 * **Data Handling:** NumPy.
 
 ## 🚀 How to Run Locally
+
+To use Thamara on your machine, follow these steps:
+
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/TahaniAcs/Thamara_Project.git](https://github.com/TahaniAcs/Thamara_Project.git)
+   cd Thamara_Project
 
 To use Thamara on your machine, follow these steps:
 
@@ -66,12 +78,9 @@ To use Thamara on your machine, follow these steps:
 ## 📸 Model Performance
 The model was trained for **50 epochs** achieving high accuracy in distinguishing between Fresh, Rotten, and Unripe fruits.
 
-## 👥 Credits
-Developed by **Tahani Althobiti**.
-    python download_data.py  # Download dataset first
-    python train_cnn.py      # Start training
+     python download_data.py  # Download dataset first
+     python train_cnn.py      # Start training
     ```
 
-## 📸 Model Performance
 ## 👥 Credits
 Developed by **Tahani Althobiti**.
