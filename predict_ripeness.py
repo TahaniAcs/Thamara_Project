@@ -1,79 +1,83 @@
 import tensorflow as tf
 import numpy as np
-from tensorflow.keras.preprocessing import image
+from tensorflow.keras.utils import load_img, img_to_array
 import os
+import json
 
-# 1. تحديد معلمات النموذج والملفات
-
-MODEL_PATH = 'thamara_ripeness_cnn_model.h5' # تأكد من أن هذا يتطابق مع اسم ملف النموذج المحفوظ
+# ==========================
+# إعداد المسارات
+# ==========================
+MODEL_PATH = 'thamara_ripeness_best.keras'
+INDICES_PATH = 'class_indices.json'
+NEW_IMAGE_PATH = 'test_fruit.jpg'  # ضع صورة هنا لتجربتها
 IMAGE_SIZE = (128, 128)
-# تحديد الفئات (يجب أن تتطابق مع ترتيب الفئات أثناء التدريب)
-CLASS_NAMES = [
-    'freshapples', 'freshbanana', 'freshoranges', 
-    'rottenapples', 'rottenbanana', 'rottenoranges', 
-    'unripe apple', 'unripe banana', 'unripe orange'
-]
-# مسار الصورة الجديدة التي تريد اختبارها (استبدل باسم صورتك)
-NEW_IMAGE_PATH = 'test_fruit.jpg/test2_orange.jpg' 
 
-# 2. تحميل النموذج المدرب مسبقاً
+# 1. تحميل أسماء الكلاسات تلقائياً
+if os.path.exists(INDICES_PATH):
+    with open(INDICES_PATH, 'r', encoding='utf-8') as f:
+        indices = json.load(f)
+        # نحتاج عكس القاموس ليصبح {0: 'apple', 1: 'banana'}
+        CLASS_NAMES = {v: k for k, v in indices.items()}
+else:
+    print(f"⚠️ تحذير: ملف {INDICES_PATH} غير موجود. تأكد من تشغيل ملف التدريب أولاً.")
+    raise SystemExit
 
-try:
+# 2. تحميل النموذج
+if os.path.exists(MODEL_PATH):
     model = tf.keras.models.load_model(MODEL_PATH)
-    print(f"✅ تم تحميل النموذج بنجاح من: {MODEL_PATH}")
-except Exception as e:
-    print(f"❌ خطأ في تحميل النموذج. تأكد أن ملف {MODEL_PATH} موجود: {e}")
-    exit()
+    print("✅ تم تحميل النموذج بنجاح")
+else:
+    print("❌ خطأ: ملف النموذج غير موجود.")
+    raise SystemExit
 
-# 3. دالة تجهيز الصورة للتصنيف
+# ==========================
+# دوال المساعدة
+# ==========================
+def decode_class(predicted_folder_name):
+    # تحويل اسم المجلد (مثل freshapples) إلى كلمات عربية
+    name_lower = predicted_folder_name.lower()
+    
+    # تحديد الفاكهة
+    fruit_ar = "فاكهة غير معروفة"
+    if "apple" in name_lower: fruit_ar = "تفاح"
+    elif "banana" in name_lower: fruit_ar = "موز"
+    elif "orange" in name_lower: fruit_ar = "برتقال"
 
-def prepare_image(img_path):
-    # تحميل الصورة وتغيير حجمها إلى الحجم الذي دربت عليه النموذج (128x128)
-    img = image.load_img(img_path, target_size=IMAGE_SIZE)
-    # تحويل الصورة إلى مصفوفة (Array)
-    img_array = image.img_to_array(img)
-    # إضافة بُعد batch (يجب أن يكون شكل المصفوفة (1, 128, 128, 3))
-    img_array = np.expand_dims(img_array, axis=0)
-    # تطبيع قيمة البكسلات (مثلما فعلنا في التدريب)
-    img_array /= 255.0
-    return img_array
+    # تحديد الحالة
+    ripeness_ar = "حالة غير معروفة"
+    if "fresh" in name_lower: ripeness_ar = "طازجة"
+    elif "rotten" in name_lower: ripeness_ar = "متعفنة"
+    elif "unripe" in name_lower: ripeness_ar = "غير ناضجة"
 
-# 4. دالة التنبؤ (Prediction)
+    return ripeness_ar, fruit_ar
 
-def predict_image(model, img_path, class_names):
+def predict_image(img_path):
     # تجهيز الصورة
-    processed_image = prepare_image(img_path)
-    
-    # إجراء التنبؤ
-    predictions = model.predict(processed_image)
-    
-    # الحصول على الفئة ذات الاحتمالية الأعلى
-    predicted_class_index = np.argmax(predictions[0])
-    predicted_class = class_names[predicted_class_index]
-    confidence = predictions[0][predicted_class_index] * 100
-    
-    # تحليل حالة النضج
-    
-    if "fresh" in predicted_class or "ripe" in predicted_class:
-        status = "ناضجة - جاهزة للحصاد"
-    elif "rotten" in predicted_class:
-        status = "متعفنة - يجب التخلص منها"
-    elif "unripe" in predicted_class:
-        status = "غير ناضجة - انتظر"
-    else:
-        status = "تصنيف غير معروف"
+    img = load_img(img_path, target_size=IMAGE_SIZE)
+    img_array = img_to_array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
 
-    print("\n--- نتيجة نظام ثمرة ---")
-    print(f"صنف الفاكهة: {predicted_class.replace('fresh', 'طازج').replace('rotten', 'متعفن').replace('unripe', 'غير ناضج')}")
-    print(f"حالة النضج: {status}")
-    print(f"درجة الثقة: {confidence:.2f}%")
-    print("-------------------------\n")
+    # التوقع
+    predictions = model.predict(img_array)[0]
+    predicted_index = np.argmax(predictions)
+    confidence = predictions[predicted_index] * 100
+    
+    # الحصول على اسم المجلد الأصلي من الـ JSON
+    folder_name = CLASS_NAMES[predicted_index]
+    
+    # الترجمة للعربية
+    ripeness_ar, fruit_ar = decode_class(folder_name)
 
-
-# 5. تشغيل البرنامج
+    print("\n--- 🍎 نتيجة نظام ثمرة 🍎 ---")
+    print(f"الفاكهة: {fruit_ar}")
+    print(f"الحالة:  {ripeness_ar}")
+    print(f"الدقة:   {confidence:.2f}%")
+    print(f"المجلد:  {folder_name}")
+    print("-----------------------------\n")
 
 if __name__ == '__main__':
     if os.path.exists(NEW_IMAGE_PATH):
-        predict_image(model, NEW_IMAGE_PATH, CLASS_NAMES)
+        predict_image(NEW_IMAGE_PATH)
     else:
+        print(f"ℹ️ نصيحة: ضع صورة باسم '{NEW_IMAGE_PATH}' بجانب الملف لتجربتها.")
         print(f"❌ لم يتم العثور على صورة الاختبار. يرجى وضع ملف {NEW_IMAGE_PATH} في مجلد المشروع.")
